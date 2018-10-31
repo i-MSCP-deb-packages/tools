@@ -1,0 +1,2 @@
+Cmnd_Alias PBUILDER = /usr/sbin/pbuilder,/usr/sbin/cowbuilder
+Defaults!PBUILDER env_keep += "HOME OS DIST ARCH GIT_PBUILDER_AUTOCONF"

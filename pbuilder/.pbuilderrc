@@ -1,0 +1,71 @@
+#!/bin/sh
+
+# cowbuilder/pbuilder setup
+
+set -e
+
+: ${OS:="debian"}
+
+if [ "$OS" == "debian" ]; then
+    : ${DIST:="buster"}
+    : ${ARCH:="amd64"}
+
+    MIRRORSITE="http://ftp.debian.org/debian"
+    COMPONENTS="main contrib non-free"
+    DEBOOTSTRAPOPTS=("${DEBOOTSTRAPOPTS[@]}" "--keyring=/usr/share/keyrings/debian-archive-keyring.gpg")
+elif [ "$OS" == "raspbian" ]; then
+    : ${DIST:="buster"}
+    : ${ARCH:="armhf"}
+
+    MIRRORSITE="http://archive.raspbian.org/raspbian"
+    COMPONENTS="main contrib non-free"
+    DEBOOTSTRAPOPTS=("${DEBOOTSTRAPOPTS[@]}" "--keyring=/usr/share/keyrings/raspbian-archive-keyring.gpg")
+elif [ "$OS" == "ubuntu" ]; then
+    : ${DIST:="bionic"}
+    : ${ARCH:="amd64"}
+
+    MIRRORSITE="http://fr.archive.ubuntu.com/ubuntu"
+    COMPONENTS="main restricted universe multiverse"
+    DEBOOTSTRAPOPTS=("${DEBOOTSTRAPOPTS[@]}" "--keyring=/usr/share/keyrings/ubuntu-archive-keyring.gpg")
+else
+    echo "Unknown OS: $OS"
+    exit 1
+fi
+
+EXTRAPACKAGES="eatmydata"
+
+NAME="$OS-$DIST-$ARCH"
+
+if [ "$ARCH" == "armel" ] && [ "$(dpkg --print-architecture)" != "armel" ]; then
+    DEBOOTSTRAP="qemu-debootstrap"
+fi
+if [ "$ARCH" == "armhf" ] && [ "$(dpkg --print-architecture)" != "armhf" ]; then
+    DEBOOTSTRAP="qemu-debootstrap"
+fi
+
+DEBOOTSTRAPOPTS=("${DEBOOTSTRAPOPTS[@]}" "--arch=$ARCH")
+
+ALLOWUNTRUSTED=no
+
+# Disable APT cache as we have our own squid cache
+#APTCACHE="/var/cache/pbuilder/$NAME/aptcache/"
+APTCACHE=""
+
+# Only for pbuilder
+BASETGZ="/var/cache/pbuilder/$NAME-base.tgz"
+
+# Only for cowbuilder
+BASEPATH="/var/cache/pbuilder/base-$NAME.cow/"
+
+BUILDPLACE="/var/cache/pbuilder/build"
+BUILDUSERID=65534
+BUILDUSERNAME=nobody
+BUILDRESULT="/var/cache/pbuilder/result/$NAME/"
+
+#BINDMOUNTS="$BUILDRESULT"
+
+DISTRIBUTION="$DIST"
+
+HOOKDIR="/var/cache/pbuilder/hook.d/"
+
+export http_proxy=http://192.168.1.254:8000/
