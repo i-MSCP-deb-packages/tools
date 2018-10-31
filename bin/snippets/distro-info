@@ -1,0 +1,22 @@
+#!/bin/bash -xe
+
+SEARCH=$DIST
+case "${DIST}" in
+    *-backports) SEARCH=$(echo $DIST | cut -f 1 -d -) ;;
+    unstable) SEARCH=sid ;;
+    *) SEARCH=$DIST ;;
+esac
+
+for VENDOR in debian ubuntu; do
+    VERSION=$(grep $SEARCH /usr/share/distro-info/$VENDOR.csv | sed -e 's/[ ,].*//')
+    if [ -n "$VERSION" ]; then
+    CODENAME=$(grep $SEARCH /usr/share/distro-info/$VENDOR.csv | cut -f 2 -d ,)
+    DESCRIPTION="$CODENAME ($VERSION)"
+    break
+    fi
+done
+
+if [ -z "$VERSION" ]; then
+    echo "$0: Please update distro-info snippet"; exit 1 ;
+fi
+

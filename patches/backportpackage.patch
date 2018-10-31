@@ -1,0 +1,60 @@
+--- /usr/bin/backportpackage	2016-05-09 08:27:24.000000000 +0200
++++ /home/nuxwin/bin/backportpackage	2018-10-31 21:07:14.603436523 +0100
+@@ -81,6 +81,10 @@
+                       metavar='SUFFIX',
+                       help='Suffix to append to version number '
+                            '(default: ~ppa1 when uploading to a PPA)')
++    parser.add_option('-p', '--prefix',
++                      metavar='PREFIX',
++                      help='Prefix to prepend to version number '
++                           '(default: ~<distribution> (debian or ubuntu)')
+     parser.add_option('-b', '--build',
+                       default=False,
+                       action='store_true',
+@@ -217,14 +221,16 @@
+ 
+     return srcpkg
+ 
+-def get_backport_version(version, suffix, upload, release):
++def get_backport_version(version, suffix, upload, release, prefix):
+     distribution = codename_to_distribution(release)
+     if not distribution:
+         error('Unknown release codename %s' % release)
+     series = Distribution(distribution.lower()).\
+         getSeries(name_or_version=release)
+ 
+-    backport_version = version + ('~%s%s.1' % (distribution.lower(), series.version))
++    if prefix is None:
++        prefix = '~%s' % (distribution.lower())
++    backport_version = version + ('%s%s.1' % (prefix, series.version))
+     if suffix is not None:
+         backport_version += suffix
+     elif upload and upload.startswith('ppa:'):
+@@ -301,7 +307,7 @@
+     return False
+ 
+ def do_backport(workdir, pkg, suffix, close, release, release_pocket, build,
+-                builder, update, upload, keyid, prompt):
++                builder, update, upload, keyid, prompt, prefix):
+     dirname = '%s-%s' % (pkg.source, release)
+     srcdir = os.path.join(workdir, dirname)
+ 
+@@ -314,7 +320,7 @@
+     pkg.unpack(dirname)
+ 
+     bp_version = get_backport_version(pkg.version.full_version, suffix,
+-                                      upload, release)
++                                      upload, release, prefix)
+     old_version = get_old_version(pkg.source, release)
+     bp_dist = get_backport_dist(release, release_pocket)
+ 
+@@ -405,7 +411,8 @@
+                         opts.update,
+                         opts.upload,
+                         opts.keyid,
+-                        opts.prompt)
++                        opts.prompt,
++                        opts.prefix)
+     except DownloadError, e:
+         error(str(e))
+     finally:

@@ -1,0 +1,5 @@
+case "$PPA" in
+    cmake)    DISTS="trusty";;
+    dpa)      DISTS="wheezy jessie stretch buster";;
+    *)        DISTS="trusty xenial bionic cosmic";;
+esac

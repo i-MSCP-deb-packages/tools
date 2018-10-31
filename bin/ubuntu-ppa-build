@@ -1,0 +1,65 @@
+#!/bin/bash -ex
+
+DEBSIGN_KEYID=0x57067BAA1314C7FC
+
+echo | gpg -u ${DEBSIGN_KEYID} --sign > /dev/null
+
+TEMP=$(getopt -o ip:b:u:k:n --long ignore,patch:,branch:,upload:,keyid,noclean -n $0 -- "$@")
+eval set -- "$TEMP"
+
+PATCH=1
+BRANCH=
+IGNORE=
+PPA=
+
+while true; do
+    case "$1" in
+    -k|--keyid) DEBSIGN_KEYID=$2; shift 2 ;;
+    -p|--patch) PATCH=$2; shift 2 ;;
+    -b|--branch) BRANCH="--git-debian-branch=$2"; shift 2 ;;
+    -i|--ignore) IGNORE="--git-ignore-new"; shift ;;
+    -u|--upload) PPA=$2; shift 2 ;;
+    -n|--noclean) NOCLEAN="-nc"; shift ;;
+    --) shift ; break ;;
+    esac
+done
+
+# Mark variables for export
+export DIST ARCH EXTRA_VERSION DEBSIGN_KEYID
+
+WORKDIR="$(realpath ../build-area)"
+
+[ "$PPA" = "-" ] && PPA=$(basename $(pwd))
+
+[ -f ~/bin/ubuntu-dists ]  && . ~/bin/ubuntu-dists
+[ -f ../ubuntu-dists ]     && . ../ubuntu-dists
+[ -f debian/ubuntu-dists ] && . debian/ubuntu-dists
+
+. $HOME/bin/snippets/pkg-info
+
+if [ "${PPA}" ]; then
+    UPLOAD="--upload=${PPA}-ppa"
+#    rm -f "${WORKDIR}/${DEB_SOURCE}_${DEB_VERSION}"*"_source.${PPA}-ppa.upload"
+fi
+
+for DIST in ${DISTS}; do
+    . $HOME/bin/snippets/distro-info
+    EXTRA_VERSION="+deb.sury.org+${PATCH:-1}"
+    case "${PPA}" in
+    certbot) EXTRA_VERSION="+certbot+${PATCH:-1}" ;;
+    *) ;;
+    esac
+    gbp buildpackage \
+    --git-export-dir="${WORKDIR}" \
+    ${BRANCH} \
+    ${IGNORE} \
+    --git-no-pbuilder \
+    --git-cleaner=/bin/true \
+    --git-dist="${DIST}" \
+    --git-builder="dpkg-buildpackage --build=source \"--sign-key=${DEBSIGN_KEYID}\" --no-check-builddeps --no-pre-clean -sa && backportpackage \"--version=${DEB_VERSION}\" \"--prefix=+ubuntu\" \"--suffix=${EXTRA_VERSION}\" \"--destination=${DIST}\" --update \"--workdir=${WORKDIR}\" \"${UPLOAD}\" \"--key=${DEBSIGN_KEYID}\" --yes --release-pocket \"${WORKDIR}/${DEB_SOURCE}_${DEB_VERSION_UPSTREAM_REVISION}.dsc\"" \
+#    \
+#    "--git-arch=${ARCH}" \
+#    "--buildinfo-option=-O" \
+#    -S -sa ${NOCLEAN} \
+#    "$@"
+done
