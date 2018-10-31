@@ -1,6 +1,6 @@
 #!/bin/bash -ex
 
-DEBSIGN_KEYID=0x57067BAA1314C7FC
+DEBSIGN_KEYID=0x04AF04FB34C09AC5
 
 echo | gpg -u ${DEBSIGN_KEYID} --sign > /dev/null
 
@@ -44,7 +44,7 @@ fi
 
 for DIST in ${DISTS}; do
     . $HOME/bin/snippets/distro-info
-    EXTRA_VERSION="+deb.sury.org+${PATCH:-1}"
+    EXTRA_VERSION="+deb.i-mscp.net+${PATCH:-1}"
     case "${PPA}" in
     certbot) EXTRA_VERSION="+certbot+${PATCH:-1}" ;;
     *) ;;
